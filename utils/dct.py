@@ -98,6 +98,7 @@ def idct(X, norm=None):
     #V = torch.cat([V_r.unsqueeze(2), V_i.unsqueeze(2)], dim=2)
     V = torch.complex(V_r, V_i)
     v = torch.fft.ifft(V, dim=1)
+    
 
     x = v.new_zeros(v.shape)
     x[:, ::2] += v[:, :N - (N // 2)]

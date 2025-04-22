@@ -2,11 +2,9 @@ import math
 import random
 import numpy as np
 import torch
-from utils.attack import get_init_with_noise
-
+from utils.attack import get_init_with_noise, get_init_with_orthogonal_noise
 import utils.dct as torch_dct
 from utils.utils import atleast_kdim
-
 
 def distance(a, b):
     return (a - b).flatten(1).norm(dim=1)
@@ -96,8 +94,8 @@ class SurFree():
         self.labels = labels
         self._model = model
 
-        # Get Starting Point
-        self.best_advs = get_init_with_noise(model, X, labels) if starting_points is None else starting_points
+        # Get Starting Point / start with noise
+        self.best_advs = get_init_with_orthogonal_noise(model, X, labels) if starting_points is None else starting_points
         self.X = X
 
         # Check if X are already adversarials.
@@ -108,8 +106,8 @@ class SurFree():
         self.best_advs = self._binary_search(self.best_advs, boost=True)
 
         # Initialize the direction orthogonalized with the first direction
-        fd = self.best_advs - self.X
-        self._directions_ortho = {i: v.unsqueeze(0) / v.norm() for i, v in enumerate(fd)}
+        fd = self.best_advs - self.X # how far and in what direction did I move from the original image?
+        self._directions_ortho = {i: v.unsqueeze(0) / v.norm() for i, v in enumerate(fd)} # get only the direction
 
         # Load Basis
         self._basis = Basis(self.X, **kwargs["basis_params"]) if "basis_params" in kwargs else Basis(self.X)
@@ -153,7 +151,6 @@ class SurFree():
         if self.quantification:
             perturbed = self._quantify(perturbed)
         is_advs = self._model(perturbed).argmax(1) != self.labels
-
         indexes = []
         for i, p in enumerate(perturbed):
             if not (p == 0).all() and not self._images_finished[i]:
@@ -199,7 +196,6 @@ class SurFree():
             function_evolution = self._get_evolution_function(direction_2)
             
             new_epsilons = self._get_best_theta(function_evolution, epsilon == 0)
-
             for i, eps_i in enumerate(epsilon):
                 if eps_i == 0:
                     if new_epsilons[i] == 0:
@@ -351,7 +347,7 @@ class SurFree():
         
         return lower
 
-    def _binary_search(self, perturbed: torch.Tensor, boost= False) -> torch.Tensor:
+    def _binary_search(self, perturbed: torch.Tensor, boost= False) -> torch.Tensor: # Refine Adversarial example using binary
         # Choose upper thresholds in binary search based on constraint.
         highs = torch.ones(len(perturbed)).to(perturbed.device)
         d = np.prod(perturbed.shape[1:])
@@ -359,9 +355,9 @@ class SurFree():
         lows = torch.zeros_like(highs)
         mask = atleast_kdim(self._images_finished, len(perturbed.shape))
 
-        # Boost Binary search
+        # Boost Binary search by generate a nearer pertured image to the original and still adversarial
         if boost:
-            boost_vec = torch.where(mask, torch.zeros_like(perturbed), 0.2 * self.X + 0.8 * perturbed)
+            boost_vec = torch.where(mask, torch.zeros_like(perturbed), 0.2 * self.X + 0.8 * perturbed) # pull the adv by 20% to the original image and be adversarial with 80%.
             is_advs = self._is_adversarial(boost_vec)
             is_advs = atleast_kdim(is_advs, len(self.X.shape))
             originals = torch.where(is_advs.logical_not(), boost_vec, self.X)

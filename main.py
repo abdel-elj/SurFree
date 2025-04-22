@@ -13,7 +13,7 @@ from torchvision.io import read_image
 from surfree import SurFree
 
 
-def get_model():
+def get_model(): # Initiate the model (resnet18)
     model = torchvision.models.resnet18(pretrained=True).eval()
     mean = torch.Tensor([0.485, 0.456, 0.406])
     std = torch.Tensor([0.229, 0.224, 0.225])
@@ -29,14 +29,15 @@ def get_args():
     parser.add_argument("--output_folder", "-o", default="results_test/", help="Output folder")
     parser.add_argument("--n_images", "-n", type=int, default=2, help="N images attacks")
     parser.add_argument(
-        "--config_path", 
-        default="config_example.json", 
+        "--config_path",
+        default="config_example.json",
         help="Configuration Path with all the parameter for SurFree. It have to be a dict with the keys init and run."
         )
     return parser.parse_args()
 
 
 if __name__ == "__main__":
+    
     args = get_args()
     ###############################
     output_folder = args.output_folder
@@ -59,7 +60,7 @@ if __name__ == "__main__":
     ###############################
     print("Get understandable ImageNet labels")
     imagenet_labels = get_imagenet_labels()
-    
+
     ###############################
     print("Load Data")
     X = []
@@ -68,7 +69,7 @@ if __name__ == "__main__":
         X.append(transform(read_image(os.path.join("./images", img))).unsqueeze(0))
     X = torch.cat(X, 0) / 255
     y = model(X).argmax(1)
-
+    
     ###############################
     print("Attack !")
     time_start = time.time()
@@ -79,7 +80,7 @@ if __name__ == "__main__":
         model = model.cuda(0)
         X = X.cuda(0)
         y = y.cuda(0)
-
+    import pdb;pdb.set_trace()
     advs = f_attack(model, X, y, **config["run"])
     print("{:.2f} s to run".format(time.time() - time_start))
 
@@ -95,7 +96,7 @@ if __name__ == "__main__":
         print("\t- Original label: {}".format(imagenet_labels[str(label_o)]))
         print("\t- Adversarial label: {}".format(imagenet_labels[str(label_adv)]))
         print("\t- l2 = {}".format(advs_l2[image_i]))
-        print("\t- {} queries\n".format(nqueries[image_i])) 
+        print("\t- {} queries\n".format(nqueries[image_i]))
 
     ###############################
     print("Save Results")
