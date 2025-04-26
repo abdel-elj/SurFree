@@ -34,6 +34,7 @@ The core SurFree algorithm operates iteratively. Here's a high-level overview of
 
 ---
 ### My Contribution
+#### Targeted-Attack Surfree
 This version of the SurFree algorithm is adapted for targeted adversarial attacks, where the goal is to perturb an input sample such that it is misclassified as a specific target class rather than just any incorrect label.
 1.  **Initialization:** Start with an adversarial example x_{b,1} that is classified as the **target class** t. This is done by generating an initial adversarial candidate close to the decision boundary and performing a binary search between the original input x_o and the initial candidate until a point classified as t is found.
 
@@ -54,6 +55,12 @@ This version of the SurFree algorithm is adapted for targeted adversarial attack
 
 5.  **Output:** Return the new adversarial boundary point x_{b,k+1} that is as close as possible to x_o and is confidently classified as the target class t.
 
+#### Enhanced Initialization (Experiment)
+**This will not result in lower queries, instead of that, it results in lower distortion using the same number of steps**
+
+Giving the algorithm a push in the initialization phase in order to reach minimum distances with the same steps number.​
+
+- For each sample in X, generate n_directions orthogonal to it, apply perturbations, and select the best adversarial candidate (i.e., one that fools the model with minimal L2 distance).​
 
 ## ⚙️ Installation & Setup
 
